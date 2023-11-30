@@ -1,4 +1,5 @@
 import _ from "lodash";
+import { LRUCache } from "lru-cache";
 
 export interface Product {
   source: string;
@@ -28,16 +29,19 @@ export class PromiseLadder {
   private processingStacks: SourceItem[][];
   private batchTimers: any[];
   private currentBatches: number[];
+  //private purgeTrack: LRUCache<string, Product>;
 
   constructor(stacks: Escalation[]) {
     this.levels = stacks;
     this.sourceProms = new Map();
     this.processingStacks = stacks.map(() => []);
    /* this.purgeTrack = new LRUCache({
-      max: 50,
-      dispose:(value:Product,key:string){
-        //find and remove+resolve
-      }
+      max: 500,
+      dispose: (value: Product, key: string) => {
+        this.sourceProms.delete(key);
+        console.log("removing least recently accessed unresolved promise", key);
+        //TODO should it resolve?
+      },
     });*/
     this.batchTimers = stacks.map((st, stackIndex) =>
       setInterval(() => {
@@ -69,11 +73,11 @@ export class PromiseLadder {
       this.sourceProms.delete(source);
       return reject("All resolvers failed");
     }
-    
-    this.processingStacks[stackIndex].push({  source, resolve, reject });
+
+    this.processingStacks[stackIndex].push({ source, resolve, reject });
 
     //lru to actively trim the stack
-    //this.purgeTrack.set(source,{source,resource:undefined})
+   // this.purgeTrack.set(source, { source, resource: undefined });
   }
 
   private async processBatch(stackIndex: number): Promise<void> {
@@ -84,7 +88,9 @@ export class PromiseLadder {
     ) {
       return;
     }
-    this.processingStacks[stackIndex] = this.processingStacks[stackIndex].filter((stackItem:SourceItem)=>this.sourceProms.has(stackItem.source))
+    this.processingStacks[stackIndex] = this.processingStacks[
+      stackIndex
+    ].filter((stackItem: SourceItem) => this.sourceProms.has(stackItem.source));
     const sources: SourceItem[] = _.takeRight(
       this.processingStacks[stackIndex],
       stackOptions.minBatchSize
@@ -132,7 +138,7 @@ export class PromiseLadder {
         res.resource ? true : false
       );
       const failed: Product[] = foundProducts["false"];
-      const passed: Product[] = foundProducts["true"];
+      const passed: Product[] = foundProducts["true"] || [];
       escalate(_.map(failed, "source"));
 
       for (const product of passed) {
