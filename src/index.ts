@@ -119,7 +119,7 @@ export class PromiseLadder {
       );
 
       const foundProducts = _.groupBy(results, (res: any) =>
-        res.value ? true : false
+        res.resource ? true : false
       );
       const failed: Product[] = foundProducts["false"];
       const passed: Product[] = foundProducts["true"];
