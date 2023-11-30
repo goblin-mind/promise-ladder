@@ -68,8 +68,8 @@ Defines a level in the PromiseLadder, with properties:
 
 ## Contributing
 
-Contributions are welcome! Please refer to our [Contributing Guide](CONTRIBUTING.md) for information on the contribution process and code of conduct.
+Contributions are welcome!
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [MIT License]
