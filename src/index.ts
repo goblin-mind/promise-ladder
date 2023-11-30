@@ -1,18 +1,19 @@
 import _ from "lodash";
+
 export interface Product {
   source: string;
   resource: any;
 }
 
-
+export interface EscalationOptions {
+  minBatchSize: number;
+  maxConcurrentBatches: number;
+  timeout: number; // in milliseconds
+}
 export interface Escalation {
   resolver: (source: string[]) => Promise<Product[]>;
   callback: (item: Product) => any;
-  options: {
-    minBatchSize: number;
-    maxConcurrentBatches: number;
-    timeout: number; // in milliseconds
-  };
+  options: EscalationOptions;
 }
 
 interface SourceItem {
