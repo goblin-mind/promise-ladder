@@ -84,7 +84,7 @@ export class PromiseLadder {
     ) {
       return;
     }
-
+    this.processingStacks[stackIndex] = this.processingStacks[stackIndex].filter((stackItem:SourceItem)=>this.sourceProms.has(stackItem.source))
     const sources: SourceItem[] = _.takeRight(
       this.processingStacks[stackIndex],
       stackOptions.minBatchSize
