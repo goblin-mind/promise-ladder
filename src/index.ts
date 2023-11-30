@@ -27,15 +27,23 @@ export class PromiseLadder {
   private sourceProms: Map<string, Promise<any>>;
   private processingStacks: SourceItem[][];
   private batchTimers: any[];
-  private currentBatchSizes: number[];
   private currentBatches: number[];
 
   constructor(stacks: Escalation[]) {
     this.levels = stacks;
     this.sourceProms = new Map();
     this.processingStacks = stacks.map(() => []);
-    this.batchTimers = stacks.map(() => null);
-    this.currentBatchSizes = stacks.map(() => 0);
+   /* this.purgeTrack = new LRUCache({
+      max: 50,
+      dispose:(value:Product,key:string){
+        //find and remove+resolve
+      }
+    });*/
+    this.batchTimers = stacks.map((st, stackIndex) =>
+      setInterval(() => {
+        this.processBatch(stackIndex);
+      }, this.levels[stackIndex].options.timeout)
+    );
     this.currentBatches = stacks.map(() => 0);
   }
 
@@ -61,24 +69,19 @@ export class PromiseLadder {
       this.sourceProms.delete(source);
       return reject("All resolvers failed");
     }
+    
+    this.processingStacks[stackIndex].push({  source, resolve, reject });
 
-    this.processingStacks[stackIndex].push({ source: source, resolve, reject });
-    this.currentBatchSizes[stackIndex]++;
-
-    const stackOptions = this.levels[stackIndex].options;
-
-    if (this.currentBatchSizes[stackIndex] >= stackOptions.minBatchSize) {
-      this.processBatch(stackIndex);
-    } else if (!this.batchTimers[stackIndex]) {
-      this.batchTimers[stackIndex] = setTimeout(() => {
-        this.processBatch(stackIndex);
-      }, stackOptions.timeout);
-    }
+    //lru to actively trim the stack
+    //this.purgeTrack.set(source,{source,resource:undefined})
   }
 
   private async processBatch(stackIndex: number): Promise<void> {
     const stackOptions = this.levels[stackIndex].options;
-    if (this.currentBatches[stackIndex] > stackOptions.maxConcurrentBatches) {
+    if (
+      this.currentBatches[stackIndex] > stackOptions.maxConcurrentBatches &&
+      this.processingStacks[stackIndex].length >= stackOptions.minBatchSize
+    ) {
       return;
     }
 
@@ -91,15 +94,22 @@ export class PromiseLadder {
       stackOptions.minBatchSize
     );
 
-    this.currentBatchSizes[stackIndex] -= sources.length;
-
-    if (this.batchTimers[stackIndex]) {
+    /*if (this.batchTimers[stackIndex]) {
       clearTimeout(this.batchTimers[stackIndex]);
       this.batchTimers[stackIndex] = null;
-    }
+    }*/
 
     this.processSources(sources, stackIndex);
   }
+
+  /*private dispose(product:Product,key:string){
+    const rQMap = _.keyBy(qItems, "source");
+    const { source, resolve, reject } = rQMap[product.source];
+    const stackIndex = _.findIndex(this.processingStacks,(processingStack)=>processingStack.find((sourceItem)=>sourceItem.source===product.source)?true:false)
+    this.sourceProms.delete(source);
+    this.levels[stackIndex].callback(product);
+    resolve(product.resource);
+  }*/
 
   private async processSources(
     qItems: SourceItem[],
@@ -109,7 +119,7 @@ export class PromiseLadder {
     const rQMap = _.keyBy(qItems, "source");
     const escalate = (sources: string[]) => {
       for (const source of sources) {
-        const {  resolve, reject } = rQMap[source];
+        const { resolve, reject } = rQMap[source];
         this.addToStack(source, stackIndex + 1, resolve, reject); // Escalate to the next stack
       }
     };
@@ -130,6 +140,7 @@ export class PromiseLadder {
 
         this.sourceProms.delete(source);
         this.levels[stackIndex].callback(product);
+        //todo delete from this.processingStacks?
         resolve(product.resource);
       }
     } catch (error) {

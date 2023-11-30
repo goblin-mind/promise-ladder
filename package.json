@@ -3,7 +3,7 @@
   "version": "1.0.2",
   "description": "PromiseLadder is a JavaScript library designed for efficient and intelligent management of asynchronous promise resolution in batch processes. It uniquely addresses scenarios where the same resource is repeatedly requested before the completion of its processing through an escalation ladder, ensuring singleton resolution of such resources.",
   "main": "dist/index.js",
-  "types":"dist/index.d.ts",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "npx tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -25,9 +25,11 @@
   "homepage": "https://github.com/goblin-mind/promise-ladder#readme",
   "devDependencies": {
     "@types/lodash": "^4.14.202",
+    "@types/lru-cache": "^7.10.10",
     "typescript": "^5.3.2"
   },
   "dependencies": {
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "lru-cache": "^10.1.0"
   }
 }
